@@ -97,7 +97,6 @@ const osThreadAttr_t uartTest_attributes = {
     .stack_size = sizeof(uartTestBuffer),
     .priority   = (osPriority_t)osPriorityNormal,
 };
-
 /* Definitions for imuBinarySem01 */
 osSemaphoreId_t imuBinarySem01Handle;
 osStaticSemaphoreDef_t imuBinarySemControlBlock;
@@ -115,9 +114,22 @@ const osSemaphoreAttr_t controlBinaryIMU_attributes = {
   .cb_size = sizeof(controlBinaryIMUControlBlock),
 };
 
+osThreadId_t Controller_TaskHandle;
+uint32_t  Controller_TaskBuffer[1024];
+osStaticThreadDef_t  Controller_TaskControlBlock;
+const osThreadAttr_t  Controller_Task_attributes = {
+    .name       = " Controller_Task",
+    .cb_mem     = & Controller_TaskControlBlock,
+    .cb_size    = sizeof( Controller_TaskControlBlock),
+    .stack_mem  = & Controller_TaskBuffer[0],
+    .stack_size = sizeof(Controller_TaskBuffer),
+    .priority   = (osPriority_t)osPriorityNormal,
+};
+
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
 void uart_test(void *argument);
+void Controller_Task(void *argument);
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void *argument);
@@ -171,6 +183,7 @@ void MX_FREERTOS_Init(void) {
 
   
   uartTestHandle = osThreadNew(uart_test, NULL, &uartTest_attributes);
+  Controller_TaskHandle = osThreadNew(Controller_Task, NULL, &Controller_Task_attributes);
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -245,6 +258,15 @@ __weak void uart_test(void *argument)
 {
   UNUSED(argument);
   for (;;) {
+    osDelay(1);
+  }
+}
+
+__weak void Controller_Task(void *argument)
+{
+  UNUSED(argument);
+  for (;;) {
+    
     osDelay(1);
   }
 }

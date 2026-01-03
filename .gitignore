@@ -67,3 +67,5 @@ source\task
 .clangd
 .settings
 .vscode/
+
+.cache/

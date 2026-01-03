@@ -46,7 +46,7 @@ void uart_test(void *arguments)
     testUart_rx_init();
     testUart_tx_init();
     while (1) {
-        uart_tx_send_IT(&testUart_tx_msg);
+        //uart_tx_send_IT(&testUart_tx_msg);
         osDelay(500);
     }
 }
