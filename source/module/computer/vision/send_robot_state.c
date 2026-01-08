@@ -1,11 +1,12 @@
 /* send_robot_state.c - 机器人状态数据打包及UART发送模块 */
 
 #include "computer_pack.h"
+#include "crc8_crc16.h"
 #include "main.h"
 #include "usart.h"
 #include "uart_api.h"
 #include "vision_solution.h"
-#include "crc_api.h"
+#include "CRC8_CRC16.h"
 
 /* 全局变量声明 */
 SendPacketVision_t robot_State_Data; // 视觉数据包结构体实例
@@ -57,7 +58,7 @@ void send_robot_state()
   robot_State_Data.aim_z = aim_z_n; // Z轴归一化坐标
 
   /* 数据校验与发送 */
-  Append_CRC16_Check_Sum((uint8_t *)&robot_State_Data, sizeof(robot_State_Data)); // 添加CRC校验
+  append_CRC16_check_sum((uint8_t *)&robot_State_Data, sizeof(robot_State_Data)); // 添加CRC校验
   HAL_UART_Transmit_IT(robot_state_msg.huart,
                        (uint8_t *)&robot_State_Data,
                        sizeof(robot_State_Data)); // 非阻塞式UART发送

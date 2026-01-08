@@ -3,7 +3,7 @@
 #include "IMUtool.h"
 #include "string.h"
 #include "uart_api.h"
-#include "crc_api.h"
+#include "crc8_crc16.h"
 #define Pi 3.14159265358979323846f
 // Structure to hold the received data from the vision system
 static uart_msg_t robot_state_msg = {0};
@@ -41,7 +41,7 @@ void sendAllRobotHPData(SendPacketAllRobotHP_t *sendAllRobotHP)
 
     sendAllRobotHP->header = 0x5B;
 
-    Append_CRC16_Check_Sum((uint8_t *)sendAllRobotHP, sizeof(SendPacketAllRobotHP_t));
+    append_CRC16_check_sum((uint8_t *)sendAllRobotHP, sizeof(SendPacketAllRobotHP_t));
     HAL_UART_Transmit_IT(robot_state_msg.huart, (uint8_t *)sendAllRobotHP, sizeof(SendPacketAllRobotHP_t));
 }
 
@@ -54,7 +54,7 @@ void sendGameStatusData(SendPacketGameStatus_t *sendGameStatus)
 
     sendGameStatus->header = 0x5C;
 
-    Append_CRC16_Check_Sum((uint8_t *)sendGameStatus, sizeof(SendPacketGameStatus_t));
+    append_CRC16_check_sum((uint8_t *)sendGameStatus, sizeof(SendPacketGameStatus_t));
     HAL_UART_Transmit_IT(robot_state_msg.huart, (uint8_t *)sendGameStatus, sizeof(SendPacketGameStatus_t));
 }
 
@@ -67,6 +67,6 @@ void sendRobotStatusData(SendPacketRobotStatus_t *sendRobotStatus)
 
     sendRobotStatus->header = 0x5D;
 
-    Append_CRC16_Check_Sum((uint8_t *)sendRobotStatus, sizeof(SendPacketRobotStatus_t));
+    append_CRC16_check_sum((uint8_t *)sendRobotStatus, sizeof(SendPacketRobotStatus_t));
     HAL_UART_Transmit_IT(robot_state_msg.huart, (uint8_t *)sendRobotStatus, sizeof(SendPacketRobotStatus_t));
 }
