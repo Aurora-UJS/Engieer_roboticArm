@@ -16,6 +16,7 @@ float32_t test_angle[6];
 
 Controller_t Transmit_Frame_Data = {0};
 uint8_t testData[DATA_FRAME_LENGTH] = {0};
+uint8_t testUartBuffer_data[DATA_LENGTH] = {0};
 
 static void Data_Concatenation(const uint8_t *pData)
 {
@@ -29,10 +30,11 @@ static void Data_Concatenation(const uint8_t *pData)
     
     // 命令码ID
     Transmit_Frame_Data.cmd_id = CONTROLLER_CMD_ID;
-    
     // 数据段
     memcpy(Transmit_Frame_Data.data, pData, DATA_LENGTH);
     memcpy(Transmit_Frame_Data.data+DATA_LENGTH-2, zero, 2);
+    
+    memcpy(testUartBuffer_data, pData, DATA_LENGTH);
     // 帧尾CRC16，整包校验
     append_CRC16_check_sum((uint8_t *)(&Transmit_Frame_Data), DATA_FRAME_LENGTH);
 
@@ -61,6 +63,7 @@ void Enter_tx_msg_init(void){
     Enter_tx_msg.pBuffer = (uint8_t *)"\r\n";
     Enter_tx_msg.Len = 2;
 }
+uint8_t testtestUartSendBuffer[DATA_LENGTH];
 void Controller_Task(void *argument)
 {
     /* USER CODE BEGIN Controller_Task */
@@ -107,8 +110,8 @@ void Controller_Task(void *argument)
         Controller_Frame_tx_msg.Len = DATA_FRAME_LENGTH;
         // Controller_Uart_tx_msg.pBuffer = Uart_Send_Buffer;
         // Controller_Uart_tx_msg.Len = CONTROLLER_UART_DATA_LEN;
+        memcpy(testtestUartSendBuffer, Uart_Send_Buffer,DATA_LENGTH);
         uart_tx_send_IT(&Controller_Frame_tx_msg);
-        uart_tx_send_IT(&Enter_tx_msg);
         osDelay(10);
     }
 }
