@@ -1,5 +1,3 @@
-#ifndef __CONTROLLER_TASK_H__
-#define __CONTROLLER_TASK_H__
 
 #include "Controller_Task.h"
 #include "cmsis_os2.h"
@@ -17,25 +15,24 @@
 float32_t test_angle[6];
 
 Controller_t Transmit_Frame_Data = {0};
+uint8_t testData[DATA_FRAME_LENGTH] = {0};
 
-void Data_Concatenation(const uint8_t *pData)
+static void Data_Concatenation(const uint8_t *pData)
 {
     static uint8_t seq = 0;
     uint8_t zero[2]={0,0};
-
     // 帧头数据
     Transmit_Frame_Data.frame_header.sof = 0xA5;
     Transmit_Frame_Data.frame_header.data_length = DATA_LENGTH;
     Transmit_Frame_Data.frame_header.seq = seq;
-    append_CRC8_check_sum((uint8_t *)(&Transmit_Frame_Data.frame_header), FRAME_HEADER_LENGTH);
+    append_CRC8_check_sum((uint8_t *)(&Transmit_Frame_Data.frame_header), 5);
     
     // 命令码ID
     Transmit_Frame_Data.cmd_id = CONTROLLER_CMD_ID;
     
     // 数据段
     memcpy(Transmit_Frame_Data.data, pData, DATA_LENGTH);
-
-	  memcpy(Transmit_Frame_Data.data+ DATA_LENGTH - 2, zero, 2);
+    memcpy(Transmit_Frame_Data.data+DATA_LENGTH-2, zero, 2);
     // 帧尾CRC16，整包校验
     append_CRC16_check_sum((uint8_t *)(&Transmit_Frame_Data), DATA_FRAME_LENGTH);
 
@@ -47,9 +44,11 @@ void Data_Concatenation(const uint8_t *pData)
     {
         seq++;
     }
+    memcpy(testData,(uint8_t *)(&Transmit_Frame_Data) , DATA_FRAME_LENGTH);
 }
 
 uart_msg_t Controller_Frame_tx_msg;
+uart_msg_t Enter_tx_msg;
 void Controller_Frame_tx_msg_init(uart_msg_t *tx_msg, uint8_t *tx_buf, uint32_t length)
 {
     
@@ -57,7 +56,11 @@ void Controller_Frame_tx_msg_init(uart_msg_t *tx_msg, uint8_t *tx_buf, uint32_t 
     tx_msg->pBuffer = tx_buf;
     tx_msg->Len = length;
 }
-
+void Enter_tx_msg_init(void){
+    Enter_tx_msg.huart = &huart7;
+    Enter_tx_msg.pBuffer = (uint8_t *)"\r\n";
+    Enter_tx_msg.Len = 2;
+}
 void Controller_Task(void *argument)
 {
     /* USER CODE BEGIN Controller_Task */
@@ -77,6 +80,7 @@ void Controller_Task(void *argument)
     Controller_Frame_tx_msg_init(&Controller_Frame_tx_msg, (uint8_t *)(&Transmit_Frame_Data), DATA_FRAME_LENGTH);
     Controller_Wait_And_Capture_Zero(Controller_Motor_DJI,Controller_Motor_6020,Joint_Angle,Angle_Zero_Point);
     Controller_Uart_tx_init(&Controller_Uart_tx_msg, Uart_Send_Buffer);
+    Enter_tx_msg_init();
 
     for(;;)
     {
@@ -104,6 +108,7 @@ void Controller_Task(void *argument)
         // Controller_Uart_tx_msg.pBuffer = Uart_Send_Buffer;
         // Controller_Uart_tx_msg.Len = CONTROLLER_UART_DATA_LEN;
         uart_tx_send_IT(&Controller_Frame_tx_msg);
+        uart_tx_send_IT(&Enter_tx_msg);
         osDelay(10);
     }
 }
@@ -235,4 +240,3 @@ void Controller_Wait_And_Capture_Zero(DJI_motor_t *Controller_Motor_DJI,DJI_moto
         Angle_Zero_Point[i] = Joint_Angle[i];
     }
 }
-#endif /* __CONTROLLER_TASK_H__ */
