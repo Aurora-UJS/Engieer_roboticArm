@@ -14,27 +14,7 @@
 #include <stdint.h>
 #include <sys/cdefs.h>
 
-#define FRAME_HEADER_LENGTH 5 // 帧头数据长度
-#define CMD_ID_LENGTH 2       // 命令码ID数据长度
-#define DATA_LENGTH 24        // 数据段长度
-#define FRAME_TAIL_LENGTH 2   // 帧尾数据长度
-#define DATA_FRAME_LENGTH (FRAME_HEADER_LENGTH + CMD_ID_LENGTH + DATA_LENGTH + FRAME_TAIL_LENGTH) // 整个数据帧的长度
-
-#define CONTROLLER_CMD_ID 0x0302 // 自定义控制器命令码
-
 float32_t test_angle[6];
-
-typedef __packed struct {
-    __packed struct  {
-        uint8_t sof;              // 起始字节，固定值为0xA5
-        uint16_t data_length;     // 数据帧中data的长度
-        uint8_t seq;              // 包序号
-        uint8_t crc8;             // 帧头CRC8校验
-    } frame_header;
-    __packed uint16_t cmd_id;              // 命令码
-    __packed uint8_t  data[DATA_LENGTH];   // 自定义控制器的数据帧
-    __packed uint16_t frame_tail;          // 帧尾CRC16校验
-} Controller_t;
 
 Controller_t Transmit_Frame_Data = {0};
 
@@ -90,14 +70,9 @@ void Controller_Task(void *argument)
     Controller_Motor_DJI = pvPortMalloc(sizeof(DJI_motor_t));
     Controller_Motor_6020 = pvPortMalloc(sizeof(DJI_motor_t));
     Motor_Init_DJI(&Controller_Motor_DJI, &Controller_Motor_6020); 
-    osDelay(200);
-    for(int i = 0;i < 6;i++)
-    {
-        Controller_Angle_Refresh(Controller_Motor_DJI,  Controller_Motor_6020, Joint_Angle);
-        Angle_Zero_Point[i] = Joint_Angle[i];
-    }
-
+    
     Controller_Frame_tx_msg_init(&Controller_Frame_tx_msg, (uint8_t *)(&Transmit_Frame_Data), DATA_FRAME_LENGTH);
+    Controller_Wait_And_Capture_Zero(Controller_Motor_DJI,Controller_Motor_6020,Joint_Angle,Angle_Zero_Point);
     Controller_Uart_tx_init(&Controller_Uart_tx_msg, Uart_Send_Buffer);
 
     for(;;)
@@ -213,5 +188,48 @@ void Controller_Uart_tx_init(uart_msg_t *tx_msg, uint8_t *tx_buf)
     tx_msg->huart = &huart7;
     tx_msg->pBuffer = tx_buf;
     tx_msg->Len = CONTROLLER_UART_DATA_LEN;
+}
+
+uint8_t Controller_Motor_Data_Ready(DJI_motor_t *Controller_Motor_DJI, DJI_motor_t *Controller_Motor_6020)
+{
+    if (Controller_Motor_DJI == NULL || Controller_Motor_6020 == NULL)
+    {
+        return 0;
+    }
+
+    for (int i = 0; i < 4; i++)
+    {
+        if (Controller_Motor_DJI->motor_msg[i].can_msg.cnt == 0)
+        {
+            return 0;
+        }
+    }
+    for (int i = 0; i < 2; i++)
+    {
+        if (Controller_Motor_6020->motor_msg[i].can_msg.cnt == 0)
+        {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+void Controller_Wait_And_Capture_Zero(DJI_motor_t *Controller_Motor_DJI,DJI_motor_t *Controller_Motor_6020,float32_t *Joint_Angle,float32_t *Angle_Zero_Point)
+{
+    for (int t = 0; t < 300; t++)
+    {
+        Controller_Angle_Refresh(Controller_Motor_DJI, Controller_Motor_6020, Joint_Angle);
+        if (Controller_Motor_Data_Ready(Controller_Motor_DJI, Controller_Motor_6020))
+        {
+            break;
+        }
+        osDelay(10);
+    }
+
+    Controller_Angle_Refresh(Controller_Motor_DJI, Controller_Motor_6020, Joint_Angle);
+    for (int i = 0; i < 6; i++)
+    {
+        Angle_Zero_Point[i] = Joint_Angle[i];
+    }
 }
 #endif /* __CONTROLLER_TASK_H__ */
