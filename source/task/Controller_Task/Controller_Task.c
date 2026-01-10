@@ -21,6 +21,8 @@ Controller_t Transmit_Frame_Data = {0};
 void Data_Concatenation(const uint8_t *pData)
 {
     static uint8_t seq = 0;
+    uint8_t zero[2]={0,0};
+
     // 帧头数据
     Transmit_Frame_Data.frame_header.sof = 0xA5;
     Transmit_Frame_Data.frame_header.data_length = DATA_LENGTH;
@@ -33,6 +35,7 @@ void Data_Concatenation(const uint8_t *pData)
     // 数据段
     memcpy(Transmit_Frame_Data.data, pData, DATA_LENGTH);
 
+	  memcpy(Transmit_Frame_Data.data+ DATA_LENGTH - 2, zero, 2);
     // 帧尾CRC16，整包校验
     append_CRC16_check_sum((uint8_t *)(&Transmit_Frame_Data), DATA_FRAME_LENGTH);
 
