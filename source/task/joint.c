@@ -1,6 +1,4 @@
-#include "can_struct.h"
 #include "main.h"
-#include "stm32_hal_legacy.h"
 #include "usart.h"
 #include "uart_api.h"
 #include "motor_DM.h"
@@ -10,7 +8,8 @@
 #include <string.h>
 #include "arm_math.h"
 #include "tool.h"
-#define JOINT_NUM 6
+
+#define JOINT_NUM 7
 
 // uart_msg_t Angle_tx_msg; 测试
 // uint8_t testBuf[50] = {0};
@@ -30,8 +29,8 @@ uint8_t firstEnableFlag = 0;
  */
 void Angle_Receive_Callback(uint8_t *buf, uint32_t len)
 {
+    (void)len; // len暂时没有使用到
     // HAL_UART_Transmit(&huart7, buf, len, 100);  // 回传显示 测试
-    // memcpy(testBuf, buf, sizeof(buf)); 测试
     if (firstEnableFlag == 0) {
         firstEnableFlag = 1;
     }
@@ -123,12 +122,6 @@ void uart_Transmit_Angle(void *argment)
 }
 float dm_angle_test[6] = {0}; 
 
-float LimitPos(float joint_radian)
-{
-    if (joint_radian < 0) {
-        return joint_radian*(-1);
-    }
-}
 
 void jointFollowAngle(void *argument)
 {
@@ -142,12 +135,17 @@ void jointFollowAngle(void *argument)
         Joint_Motor_Refresh();
 
         // PosSpeed_CtrlMotorDM(joint_motor[0],joint_radian[0], 1);
-        PosSpeed_CtrlMotorDM(joint_motor[1],limit(joint_radian[1], 0, 1), 0.5); // pitch轴控制
-        PosSpeed_CtrlMotorDM(joint_motor[2],-joint_radian[2], 0.5); // pitch轴控制
-        PosSpeed_CtrlMotorDM(joint_motor[3],-joint_radian[3],  0.5); // roll轴控制
+        PosSpeed_CtrlMotorDM(joint_motor[1],limit(joint_radian[1], 0, 1.5), 1); // pitch轴控制
         osDelay(1);
-        PosSpeed_CtrlMotorDM(joint_motor[4],-joint_radian[4], 0.5); // pitch轴控制
-        PosSpeed_CtrlMotorDM(joint_motor[5],joint_radian[5], 0.5); // roll轴控制
+        PosSpeed_CtrlMotorDM(joint_motor[2],limit(-joint_radian[2], 0, 1.5), 1); // pitch轴控制
+        osDelay(1);
+        PosSpeed_CtrlMotorDM(joint_motor[3],joint_radian[3],  1); // roll轴控制
+
+        osDelay(1);
+        PosSpeed_CtrlMotorDM(joint_motor[4],limit(-joint_radian[4],-1.5, 1.5), 1); // pitch轴控制
+        osDelay(1);
+
+        PosSpeed_CtrlMotorDM(joint_motor[5],joint_radian[5], 1); // roll轴控制
         osDelay(1);
     }
 }
